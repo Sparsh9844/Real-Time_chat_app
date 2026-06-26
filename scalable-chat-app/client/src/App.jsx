@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:3001");
+const socket = io("http://localhost:8080", {
+  transports: ["websocket"],
+});
 
 function App() {
   const [username, setUsername] = useState("");

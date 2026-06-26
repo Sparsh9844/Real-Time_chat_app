@@ -1,20 +1,43 @@
-const onlineUsers = {};
+const getOnlineUsers = async (io) => {
+  const sockets = await io.fetchSockets();
+
+  return sockets
+    .filter((socket) => socket.data.username)
+    .map((socket) => ({
+      socketId: socket.id,
+      username: socket.data.username,
+    }));
+};
+
+const broadcastOnlineUsers = async (io) => {
+  const users = await getOnlineUsers(io);
+  io.emit("online_users", users);
+};
 
 export const initializeSocket = (io) => {
+  io.on("sync_online_users", async () => {
+    await broadcastOnlineUsers(io);
+  });
+
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+    console.log(
+      `User ${socket.id} connected to Server ${process.env.PORT || 3001}`,
+    );
 
-    socket.on("user_joined", (data) => {
-      onlineUsers[socket.id] = {
-        socketId: socket.id,
-        username: data.username,
-        connectedAt: new Date(),
-      };
+    socket.on("user_joined", async (data) => {
+      socket.data.username = data.username;
 
-      io.emit("online_users", Object.values(onlineUsers));
+      console.log(
+        `${data.username} joined on Server ${process.env.PORT || 3001}`,
+      );
+
+      await broadcastOnlineUsers(io);
+      io.serverSideEmit("sync_online_users");
     });
 
     socket.on("send_private_message", (data) => {
+      console.log(`Message handled by Server ${process.env.PORT || 3001}`);
+
       const messageData = {
         id: `${socket.id}-${Date.now()}`,
         text: data.text,
@@ -29,23 +52,19 @@ export const initializeSocket = (io) => {
         }),
       };
 
-      // Sender sees message immediately
       socket.emit("receive_private_message", messageData);
 
-      // Receiver gets delivered message
       io.to(data.receiverSocketId).emit("receive_private_message", {
         ...messageData,
         status: "delivered",
       });
 
-      // Sender's tick changes to ✓✓
       socket.emit("message_status_update", {
         messageId: messageData.id,
         status: "delivered",
       });
     });
 
-    // NEW: Seen event
     socket.on("message_seen", (data) => {
       io.to(data.senderId).emit("message_status_update", {
         messageId: data.messageId,
@@ -77,12 +96,15 @@ export const initializeSocket = (io) => {
       });
     });
 
-    socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
+    socket.on("disconnect", async () => {
+      console.log(
+        `User ${socket.id} disconnected from Server ${
+          process.env.PORT || 3001
+        }`,
+      );
 
-      delete onlineUsers[socket.id];
-
-      io.emit("online_users", Object.values(onlineUsers));
+      await broadcastOnlineUsers(io);
+      io.serverSideEmit("sync_online_users");
     });
   });
 };

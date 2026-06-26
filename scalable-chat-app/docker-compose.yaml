@@ -1,0 +1,14 @@
+services:
+  redis:
+    image: redis
+    container_name: chat-redis
+    ports:
+      - "6379:6379"
+
+  nginx:
+    image: nginx
+    container_name: chat-nginx
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf

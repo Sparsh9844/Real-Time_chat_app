@@ -2,8 +2,9 @@ import http from "http";
 import { Server } from "socket.io";
 import app from "./app.js";
 import { initializeSocket } from "./socket.js";
+import { setupRedisAdapter } from "./config/redisAdapter.js";
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 const server = http.createServer(app);
 
@@ -14,6 +15,10 @@ const io = new Server(server, {
   },
 });
 
+// Connect Socket.IO to Redis
+await setupRedisAdapter(io);
+
+// Register all socket events
 initializeSocket(io);
 
 server.listen(PORT, () => {
