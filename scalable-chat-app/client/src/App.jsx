@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/api/auth";
-const SOCKET_URL = "http://localhost:8080";
+const API_URL = "https://real-timechatapp-production.up.railway.app/api/auth";
+const SOCKET_URL = "https://real-timechatapp-production.up.railway.app";
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 const saveSession = (token, username) => {
