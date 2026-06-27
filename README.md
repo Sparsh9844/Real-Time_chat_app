@@ -4,6 +4,15 @@ A production-inspired real-time private chat application built using **React, No
 
 ---
 
+## 🚀 Live Demo
+
+| Service | URL |
+|---------|-----|
+| 🌐 Frontend | [https://real-time-chat-app-drab-eight.vercel.app](https://real-time-chat-app-drab-eight.vercel.app) |
+| ⚙️ Backend | [https://real-timechatapp-production.up.railway.app](https://real-timechatapp-production.up.railway.app) |
+
+---
+
 # Project Overview
 
 Most chat applications are initially built using a single backend server. This project goes a step further by implementing a **horizontally scalable architecture** where multiple backend instances work together seamlessly.
@@ -16,7 +25,9 @@ The application demonstrates concepts used in modern messaging platforms such as
 
 ## User Management
 
-* Join chat with a username
+* JWT Authentication (Register / Login)
+* Secure password hashing with bcrypt
+* Persistent sessions via JWT tokens
 * View online users
 * Select users for one-to-one private chat
 * Online user synchronization across servers
@@ -327,7 +338,6 @@ All servers behave like a single real-time system.
 
 # 📈 Future Improvements
 
-* MongoDB Message Persistence
 * Group Chats
 * Last Seen Status
 * Read Receipts
@@ -336,7 +346,6 @@ All servers behave like a single real-time system.
 * End-to-End Encryption
 * Kubernetes Deployment
 * CI/CD Pipeline
-* Cloud Deployment
 
 ---
 
