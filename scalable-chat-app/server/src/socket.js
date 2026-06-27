@@ -1,3 +1,5 @@
+import { Message } from "./models/message.model.js";
+
 const getOnlineUsers = async (io) => {
   const sockets = await io.fetchSockets();
 
@@ -12,6 +14,23 @@ const getOnlineUsers = async (io) => {
 const broadcastOnlineUsers = async (io) => {
   const users = await getOnlineUsers(io);
   io.emit("online_users", users);
+};
+
+const formatMessage = (msg) => {
+  return {
+    id: msg._id.toString(),
+    text: msg.text,
+    senderId: msg.senderId,
+    senderUsername: msg.senderUsername,
+    receiverSocketId: msg.receiverSocketId,
+    receiverUsername: msg.receiverUsername,
+    status: msg.status,
+    isDeleted: msg.isDeleted,
+    time: new Date(msg.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
 };
 
 export const initializeSocket = (io) => {
@@ -35,22 +54,36 @@ export const initializeSocket = (io) => {
       io.serverSideEmit("sync_online_users");
     });
 
-    socket.on("send_private_message", (data) => {
+    socket.on("get_chat_history", async (data) => {
+      const messages = await Message.find({
+        $or: [
+          {
+            senderUsername: data.currentUsername,
+            receiverUsername: data.selectedUsername,
+          },
+          {
+            senderUsername: data.selectedUsername,
+            receiverUsername: data.currentUsername,
+          },
+        ],
+      }).sort({ createdAt: 1 });
+
+      socket.emit("chat_history", messages.map(formatMessage));
+    });
+
+    socket.on("send_private_message", async (data) => {
       console.log(`Message handled by Server ${process.env.PORT || 3001}`);
 
-      const messageData = {
-        id: `${socket.id}-${Date.now()}`,
+      const savedMessage = await Message.create({
         text: data.text,
         senderId: socket.id,
         senderUsername: data.senderUsername,
         receiverSocketId: data.receiverSocketId,
         receiverUsername: data.receiverUsername,
         status: "sent",
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
+      });
+
+      const messageData = formatMessage(savedMessage);
 
       socket.emit("receive_private_message", messageData);
 
@@ -59,13 +92,20 @@ export const initializeSocket = (io) => {
         status: "delivered",
       });
 
+      savedMessage.status = "delivered";
+      await savedMessage.save();
+
       socket.emit("message_status_update", {
         messageId: messageData.id,
         status: "delivered",
       });
     });
 
-    socket.on("message_seen", (data) => {
+    socket.on("message_seen", async (data) => {
+      await Message.findByIdAndUpdate(data.messageId, {
+        status: "seen",
+      });
+
       io.to(data.senderId).emit("message_status_update", {
         messageId: data.messageId,
         status: "seen",
@@ -86,7 +126,12 @@ export const initializeSocket = (io) => {
       io.to(data.receiverSocketId).emit("user_stop_typing");
     });
 
-    socket.on("delete_message_for_everyone", (data) => {
+    socket.on("delete_message_for_everyone", async (data) => {
+      await Message.findByIdAndUpdate(data.messageId, {
+        text: "This message was deleted",
+        isDeleted: true,
+      });
+
       io.to(data.receiverSocketId).emit("message_deleted", {
         messageId: data.messageId,
       });

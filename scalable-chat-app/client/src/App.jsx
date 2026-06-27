@@ -54,6 +54,10 @@ function App() {
       setMessages((prev) => [...prev, data]);
     });
 
+    socket.on("chat_history", (history) => {
+      setMessages(history);
+    });
+
     socket.on("message_status_update", (data) => {
       setMessages((prev) =>
         prev.map((msg) =>
@@ -90,6 +94,7 @@ function App() {
 
     return () => {
       socket.off("receive_private_message");
+      socket.off("chat_history");
       socket.off("message_status_update");
       socket.off("message_deleted");
       socket.off("online_users");
@@ -102,10 +107,10 @@ function App() {
     if (!selectedUser) return false;
 
     return (
-      (msg.senderId === socket.id &&
-        msg.receiverSocketId === selectedUser.socketId) ||
-      (msg.senderId === selectedUser.socketId &&
-        msg.receiverSocketId === socket.id)
+      (msg.senderUsername === username &&
+        msg.receiverUsername === selectedUser.username) ||
+      (msg.senderUsername === selectedUser.username &&
+        msg.receiverUsername === username)
     );
   });
 
@@ -155,6 +160,11 @@ function App() {
               onClick={() => {
                 if (user.socketId !== socket.id) {
                   setSelectedUser(user);
+
+                  socket.emit("get_chat_history", {
+                    currentUsername: username,
+                    selectedUsername: user.username,
+                  });
                 }
               }}
               className={`flex items-center gap-3 p-3 rounded-xl transition ${
@@ -210,7 +220,7 @@ function App() {
             </p>
           ) : (
             filteredMessages.map((msg) => {
-              const isMe = msg.senderId === socket.id;
+              const isMe = msg.senderUsername === username;
 
               return (
                 <div
