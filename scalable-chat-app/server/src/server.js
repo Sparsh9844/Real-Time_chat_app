@@ -20,8 +20,12 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // tighten this in production
+    origin: [
+      "http://localhost:5173",
+      "https://real-time-chat-app-drab-eight.vercel.app"
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
